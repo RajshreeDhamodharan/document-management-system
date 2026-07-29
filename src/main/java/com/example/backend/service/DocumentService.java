@@ -30,7 +30,7 @@ import com.example.backend.entity.Document;
 import com.example.backend.entity.DocumentStatus;
 import com.example.backend.repository.DocumentRepository;
 import com.example.backend.specification.DocumentSpecification;
-
+import com.example.backend.service.DigitalSignatureService;
 @Service
 public class DocumentService {
 
@@ -41,18 +41,23 @@ public class DocumentService {
     private final ApprovalHistoryService approvalHistoryService;
     private final EmailService emailService;
     private final DocumentVersionService documentVersionService;
+    private final DigitalSignatureService digitalSignatureService;
+    private final OCRService ocrService;
+  public DocumentService(
+        DocumentRepository documentRepository,
+        ApprovalHistoryService approvalHistoryService,
+        EmailService emailService,
+        DocumentVersionService documentVersionService,
+        DigitalSignatureService digitalSignatureService,
+        OCRService ocrService) {
 
-    public DocumentService(
-            DocumentRepository documentRepository,
-            ApprovalHistoryService approvalHistoryService,
-            EmailService emailService,
-            DocumentVersionService documentVersionService) {
-
-        this.documentRepository = documentRepository;
-        this.approvalHistoryService = approvalHistoryService;
-        this.emailService = emailService;
-        this.documentVersionService = documentVersionService;
-    }
+    this.documentRepository = documentRepository;
+    this.approvalHistoryService = approvalHistoryService;
+    this.emailService = emailService;
+    this.documentVersionService = documentVersionService;
+    this.digitalSignatureService = digitalSignatureService;
+    this.ocrService = ocrService;
+}
 
     // ==========================================
     // Upload Document
@@ -87,6 +92,14 @@ public class DocumentService {
 
         document.setFileName(fileName);
         document.setFilePath(filePath.toString());
+        // ==========================================
+        // ==========================================
+// OCR Text Extraction
+// ==========================================
+String extractedText =
+        ocrService.extractText(filePath.toAbsolutePath().toString());
+
+document.setExtractedText(extractedText);
 
         document.setUploadedBy(uploadedBy);
         document.setUploadDate(LocalDate.now().toString());
@@ -346,7 +359,7 @@ public class DocumentService {
         document.setSubmittedDate(LocalDate.now().toString());
 
         Document updatedDocument = documentRepository.save(document);
-
+       
         approvalHistoryService.saveHistory(
                 updatedDocument,
                 DocumentStatus.SUBMITTED,
@@ -424,6 +437,11 @@ public class DocumentService {
         document.setRemarks(remarks);
 
         Document updatedDocument = documentRepository.save(document);
+        try {
+    digitalSignatureService.signDocument(updatedDocument.getId());
+} catch (Exception e) {
+    throw new RuntimeException("Failed to generate digital signature", e);
+}
 
         approvalHistoryService.saveHistory(
                 updatedDocument,

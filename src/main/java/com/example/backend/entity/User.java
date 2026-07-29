@@ -1,5 +1,7 @@
 package com.example.backend.entity;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -37,11 +39,27 @@ public class User {
 
     private String status;
 
-    // Default Constructor
+    // ==========================================
+    // Progressive Lockout Fields
+    // ==========================================
+
+    private int failedAttempts = 0;
+
+    private boolean accountLocked = false;
+
+    private LocalDateTime lockTime;
+
+    // ==========================================
+    // Default Constructor (Required by JPA)
+    // ==========================================
+
     public User() {
     }
 
+    // ==========================================
     // Parameterized Constructor
+    // ==========================================
+
     public User(Long id,
                 String name,
                 String email,
@@ -61,9 +79,9 @@ public class User {
         this.status = status;
     }
 
-    // ==========================
+    // ==========================================
     // Getters and Setters
-    // ==========================
+    // ==========================================
 
     public Long getId() {
         return id;
@@ -127,5 +145,41 @@ public class User {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    // ==========================================
+    // Failed Attempts
+    // ==========================================
+
+    public int getFailedAttempts() {
+        return failedAttempts;
+    }
+
+    public void setFailedAttempts(int failedAttempts) {
+        this.failedAttempts = failedAttempts;
+    }
+
+    // ==========================================
+    // Account Locked
+    // ==========================================
+
+    public boolean isAccountLocked() {
+        return accountLocked;
+    }
+
+    public void setAccountLocked(boolean accountLocked) {
+        this.accountLocked = accountLocked;
+    }
+
+    // ==========================================
+    // Lock Time
+    // ==========================================
+
+    public LocalDateTime getLockTime() {
+        return lockTime;
+    }
+
+    public void setLockTime(LocalDateTime lockTime) {
+        this.lockTime = lockTime;
     }
 }

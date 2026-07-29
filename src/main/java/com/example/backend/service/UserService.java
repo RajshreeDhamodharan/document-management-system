@@ -17,6 +17,8 @@ import com.example.backend.security.JwtUtil;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import java.time.Duration;
+import java.time.LocalDateTime;
 
 
 @Service
@@ -91,35 +93,120 @@ public Page<UserResponseDTO> getUsers(int page, int size) {
 
         return convertToResponse(savedUser);
     }
+    private int getLockMinutes(int failedAttempts) {
 
+    if (failedAttempts >= 15) {
+        return 1440; // 24 hours
+    }
+
+    if (failedAttempts >= 10) {
+        return 30;
+    }
+
+    if (failedAttempts >= 5) {
+        return 15;
+    }
+
+    return 0;
+}
     // ==========================
     // Login
     // ==========================
-    public LoginResponse loginUser(LoginRequest request) {
+  public LoginResponse loginUser(LoginRequest request) {
 
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() ->
-                        new RuntimeException("User not found"));
+    User user = userRepository.findByEmail(request.getEmail())
+            .orElseThrow(() ->
+                    new RuntimeException("User not found"));
 
-        if (!passwordEncoder.matches(
-                request.getPassword(),
-                user.getPassword())) {
+    // ==========================
+    // Check Lock Status
+    // ==========================
+
+    if (user.isAccountLocked()) {
+
+        int lockMinutes = getLockMinutes(user.getFailedAttempts());
+
+        LocalDateTime unlockTime =
+                user.getLockTime().plusMinutes(lockMinutes);
+
+        if (LocalDateTime.now().isBefore(unlockTime)) {
+
+            long remaining =
+                    Duration.between(
+                            LocalDateTime.now(),
+                            unlockTime)
+                            .toMinutes();
 
             return new LoginResponse(
-                    "Invalid Password",
+                    "Account locked. Try again after "
+                            + remaining + " minute(s).",
                     false,
-                    null
-            );
+                    null);
         }
 
-        String token = jwtUtil.generateToken(user.getEmail());
+        // Unlock account automatically
+
+        user.setAccountLocked(false);
+        user.setFailedAttempts(0);
+        user.setLockTime(null);
+
+        userRepository.save(user);
+    }
+
+    // ==========================
+    // Password Validation
+    // ==========================
+
+    if (!passwordEncoder.matches(
+            request.getPassword(),
+            user.getPassword())) {
+
+        int attempts = user.getFailedAttempts() + 1;
+
+        user.setFailedAttempts(attempts);
+
+        if (attempts >= 5) {
+
+            user.setAccountLocked(true);
+            user.setLockTime(LocalDateTime.now());
+
+            userRepository.save(user);
+
+            int lockMinutes = getLockMinutes(attempts);
+
+            return new LoginResponse(
+                    "Too many failed attempts. Account locked for "
+                            + lockMinutes + " minutes.",
+                    false,
+                    null);
+        }
+
+        userRepository.save(user);
 
         return new LoginResponse(
-                "Login Successful",
-                true,
-                token
-        );
+                "Invalid password. Remaining attempts: "
+                        + (5 - attempts),
+                false,
+                null);
     }
+
+    // ==========================
+    // Successful Login
+    // ==========================
+
+    user.setFailedAttempts(0);
+    user.setAccountLocked(false);
+    user.setLockTime(null);
+
+    userRepository.save(user);
+
+    String token = jwtUtil.generateToken(user.getEmail());
+
+    return new LoginResponse(
+            "Login Successful",
+            true,
+            token);
+}
 
     // ==========================
     // Get All Users

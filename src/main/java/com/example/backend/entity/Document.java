@@ -20,6 +20,13 @@ public class Document {
     private String fileName;
 
     private String filePath;
+    // ==========================================
+// OCR Extracted Text
+// ==========================================
+
+@Column(columnDefinition = "LONGTEXT")
+private String extractedText;
+
 
     private String uploadedBy;
 
@@ -52,37 +59,39 @@ public class Document {
     // Parameterized Constructor
     // ==========================
     public Document(Long id,
-                    String title,
-                    String description,
-                    String category,
-                    String fileName,
-                    String filePath,
-                    String uploadedBy,
-                    String uploadDate,
-                    DocumentStatus status,
-                    String submittedDate,
-                    String reviewedDate,
-                    String approvedBy,
-                    String approvedDate,
-                    String remarks,
-                    boolean archived) {
+                String title,
+                String description,
+                String category,
+                String fileName,
+                String filePath,
+                String extractedText,
+                String uploadedBy,
+                String uploadDate,
+                DocumentStatus status,
+                String submittedDate,
+                String reviewedDate,
+                String approvedBy,
+                String approvedDate,
+                String remarks,
+                boolean archived) {
 
-        this.id = id;
-        this.title = title;
-        this.description = description;
-        this.category = category;
-        this.fileName = fileName;
-        this.filePath = filePath;
-        this.uploadedBy = uploadedBy;
-        this.uploadDate = uploadDate;
-        this.status = status;
-        this.submittedDate = submittedDate;
-        this.reviewedDate = reviewedDate;
-        this.approvedBy = approvedBy;
-        this.approvedDate = approvedDate;
-        this.remarks = remarks;
-        this.archived = archived;
-    }
+    this.id = id;
+    this.title = title;
+    this.description = description;
+    this.category = category;
+    this.fileName = fileName;
+    this.filePath = filePath;
+    this.extractedText = extractedText;
+    this.uploadedBy = uploadedBy;
+    this.uploadDate = uploadDate;
+    this.status = status;
+    this.submittedDate = submittedDate;
+    this.reviewedDate = reviewedDate;
+    this.approvedBy = approvedBy;
+    this.approvedDate = approvedDate;
+    this.remarks = remarks;
+    this.archived = archived;
+}
 
     // ==========================
     // Getters and Setters
@@ -207,4 +216,11 @@ public class Document {
     public void setArchived(boolean archived) {
         this.archived = archived;
     }
+    public String getExtractedText() {
+    return extractedText;
+   }
+
+  public void setExtractedText(String extractedText) {
+    this.extractedText = extractedText;
+}
 }

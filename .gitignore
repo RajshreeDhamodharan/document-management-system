@@ -31,3 +31,18 @@ build/
 
 ### VS Code ###
 .vscode/
+# Uploaded documents
+uploads/
+
+# Generated RSA keys
+private.key
+public.key
+
+# Temporary files
+deps.txt
+
+# Maven build folder
+target/
+
+# Log files
+*.log
