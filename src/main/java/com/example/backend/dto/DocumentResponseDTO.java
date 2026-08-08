@@ -33,6 +33,7 @@ public class DocumentResponseDTO {
     private String remarks;
 
     private boolean archived;
+    private String retentionDate;
 
     // ==========================
     // Default Constructor
@@ -163,4 +164,11 @@ public class DocumentResponseDTO {
     public void setArchived(boolean archived) {
         this.archived = archived;
     }
+    public String getRetentionDate() {
+    return retentionDate;
+}
+
+public void setRetentionDate(String retentionDate) {
+    this.retentionDate = retentionDate;
+}
 }

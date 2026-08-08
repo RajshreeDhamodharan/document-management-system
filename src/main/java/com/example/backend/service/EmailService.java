@@ -3,7 +3,7 @@ package com.example.backend.service;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
-
+import com.example.backend.entity.Document;
 @Service
 public class EmailService {
 
@@ -163,4 +163,39 @@ public class EmailService {
 
         mailSender.send(message);
     }
+    public void sendRetentionReminder(Document document) {
+
+    String subject = "Document Retention Reminder";
+
+    String body =
+            "Dear User,\n\n"
+            + "Your document \""
+            + document.getTitle()
+            + "\" will expire on "
+            + document.getRetentionDate()
+            + ".\n\n"
+            + "Please review it before expiry.\n\n"
+            + "Regards,\n"
+            + "Document Management System";
+
+    sendEmail(
+            document.getUploadedBy(),
+            subject,
+            body);
+}
+// ==========================================
+// Generic Email Sender
+// ==========================================
+public void sendEmail(String toEmail,
+                      String subject,
+                      String body) {
+
+    SimpleMailMessage message = new SimpleMailMessage();
+
+    message.setTo(toEmail);
+    message.setSubject(subject);
+    message.setText(body);
+
+    mailSender.send(message);
+}
 }

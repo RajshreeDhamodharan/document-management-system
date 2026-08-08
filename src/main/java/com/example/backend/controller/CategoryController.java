@@ -71,12 +71,14 @@ public ResponseEntity<Page<Category>> getCategories(
     // ==========================
     // Update Category
     // ==========================
-    @PutMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','OWNER')")
-    public Category updateCategory(@RequestBody Category category) {
-        return categoryService.updateCategory(category);
-    }
+   @PutMapping("/{id}")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','OWNER')")
+public Category updateCategory(
+        @PathVariable Long id,
+        @RequestBody Category category) {
 
+    return categoryService.updateCategory(id, category);
+}
     // ==========================
     // Delete Category
     // ==========================

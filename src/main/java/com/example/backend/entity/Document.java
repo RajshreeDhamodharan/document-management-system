@@ -48,6 +48,13 @@ private String extractedText;
     private String remarks;
 
     private boolean archived;
+    // ==========================================
+// Document Expiry
+// ==========================================
+
+private String retentionDate;
+
+private boolean expiryNotificationSent = false;
 
     // ==========================
     // Default Constructor
@@ -222,5 +229,20 @@ private String extractedText;
 
   public void setExtractedText(String extractedText) {
     this.extractedText = extractedText;
+}
+public String getRetentionDate() {
+    return retentionDate;
+}
+
+public void setRetentionDate(String retentionDate) {
+    this.retentionDate = retentionDate;
+}
+
+public boolean isExpiryNotificationSent() {
+    return expiryNotificationSent;
+}
+
+public void setExpiryNotificationSent(boolean expiryNotificationSent) {
+    this.expiryNotificationSent = expiryNotificationSent;
 }
 }

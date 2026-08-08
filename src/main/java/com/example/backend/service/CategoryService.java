@@ -69,9 +69,27 @@ public Page<Category> getCategories(int page, int size) {
     // ==========================
     // Update Category
     // ==========================
-    public Category updateCategory(Category category) {
-        return categoryRepository.save(category);
+   public Category updateCategory(Long id, Category category) {
+
+    Category existingCategory = categoryRepository.findById(id)
+            .orElseThrow(() ->
+                    new RuntimeException("Category not found"));
+
+    // Check duplicate name only if the name is changed
+    if (!existingCategory.getCategoryName()
+            .equalsIgnoreCase(category.getCategoryName())
+            && categoryRepository.existsByCategoryName(category.getCategoryName())) {
+
+        throw new RuntimeException("Category already exists.");
     }
+
+    existingCategory.setCategoryName(category.getCategoryName());
+    existingCategory.setDescription(category.getDescription());
+    existingCategory.setRetentionPeriod(category.getRetentionPeriod());
+    existingCategory.setStatus(category.getStatus());
+
+    return categoryRepository.save(existingCategory);
+}
 
     // ==========================
     // Delete Category

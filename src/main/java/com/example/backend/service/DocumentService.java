@@ -13,7 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
+
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -30,7 +30,7 @@ import com.example.backend.entity.Document;
 import com.example.backend.entity.DocumentStatus;
 import com.example.backend.repository.DocumentRepository;
 import com.example.backend.specification.DocumentSpecification;
-import com.example.backend.service.DigitalSignatureService;
+
 @Service
 public class DocumentService {
 
@@ -40,13 +40,15 @@ public class DocumentService {
     private final DocumentRepository documentRepository;
     private final ApprovalHistoryService approvalHistoryService;
     private final EmailService emailService;
+    private final NotificationService notificationService;
     private final DocumentVersionService documentVersionService;
     private final DigitalSignatureService digitalSignatureService;
     private final OCRService ocrService;
-  public DocumentService(
+ public DocumentService(
         DocumentRepository documentRepository,
         ApprovalHistoryService approvalHistoryService,
         EmailService emailService,
+        NotificationService notificationService,
         DocumentVersionService documentVersionService,
         DigitalSignatureService digitalSignatureService,
         OCRService ocrService) {
@@ -54,6 +56,7 @@ public class DocumentService {
     this.documentRepository = documentRepository;
     this.approvalHistoryService = approvalHistoryService;
     this.emailService = emailService;
+    this.notificationService = notificationService;
     this.documentVersionService = documentVersionService;
     this.digitalSignatureService = digitalSignatureService;
     this.ocrService = ocrService;
@@ -89,7 +92,7 @@ public class DocumentService {
         document.setTitle(dto.getTitle());
         document.setDescription(dto.getDescription());
         document.setCategory(dto.getCategory());
-
+        document.setRetentionDate(dto.getRetentionDate());
         document.setFileName(fileName);
         document.setFilePath(filePath.toString());
         // ==========================================
@@ -119,6 +122,13 @@ document.setExtractedText(extractedText);
                 DocumentStatus.DRAFT,
                 uploadedBy,
                 "Document uploaded");
+      notificationService.createNotification(
+        uploadedBy,
+        "Document Uploaded",
+        "Your document \"" +
+        savedDocument.getTitle() +
+        "\" has been uploaded successfully.",
+        "UPLOAD");
 
         return convertToResponse(savedDocument);
     }
@@ -129,6 +139,7 @@ document.setExtractedText(extractedText);
 
     public List<DocumentResponseDTO> getAllDocuments() {
 
+
         return documentRepository.findByArchivedFalse()
 
                 .stream()
@@ -137,7 +148,19 @@ document.setExtractedText(extractedText);
 
                 .collect(Collectors.toList());
     }
+    // ==========================================
+// Full Text Search
+// ==========================================
 
+public List<DocumentResponseDTO> searchDocuments(String keyword) {
+
+    List<Document> documents =
+            documentRepository.searchByExtractedText(keyword);
+
+    return documents.stream()
+            .map(this::convertToResponse)
+            .collect(Collectors.toList());
+}
     // ==========================================
     // Get Document By Id
     // ==========================================
@@ -154,33 +177,45 @@ document.setExtractedText(extractedText);
         // ==========================================
     // Update Document
     // ==========================================
+public DocumentResponseDTO updateDocument(
+        Long id,
+        DocumentRequestDTO dto) {
 
-    public DocumentResponseDTO updateDocument(
-            Long id,
-            DocumentRequestDTO dto) {
+    Document document = documentRepository.findById(id)
+            .orElseThrow(() ->
+                    new RuntimeException("Document not found"));
 
-        Document document = documentRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Document not found"));
+    // Prevent updates on archived documents
+    validateNotArchived(document);
 
-        // Save current version before updating
-        documentVersionService.saveVersion(document);
+    // Save current version before updating
+    documentVersionService.saveVersion(document);
 
-        document.setTitle(dto.getTitle());
-        document.setDescription(dto.getDescription());
-        document.setCategory(dto.getCategory());
+    document.setTitle(dto.getTitle());
+    document.setDescription(dto.getDescription());
+    document.setCategory(dto.getCategory());
 
-        Document updatedDocument =
-                documentRepository.save(document);
+    Document updatedDocument =
+            documentRepository.save(document);
 
-        approvalHistoryService.saveHistory(
-                updatedDocument,
-                updatedDocument.getStatus(),
-                updatedDocument.getUploadedBy(),
-                "Document updated");
+    approvalHistoryService.saveHistory(
+            updatedDocument,
+            updatedDocument.getStatus(),
+            updatedDocument.getUploadedBy(),
+            "Document updated");
 
-        return convertToResponse(updatedDocument);
-    }
+    // ==========================
+    // Create Notification
+    // ==========================
+    notificationService.createNotification(
+            updatedDocument.getUploadedBy(),
+            "Document Updated",
+            "Your document \"" + updatedDocument.getTitle()
+                    + "\" has been updated successfully.",
+            "UPDATE");
+
+    return convertToResponse(updatedDocument);
+}
 
     // ==========================================
     // Soft Delete (Move to Recycle Bin)
@@ -350,6 +385,7 @@ document.setExtractedText(extractedText);
         Document document = documentRepository.findById(id)
                 .orElseThrow(() ->
                         new RuntimeException("Document not found"));
+        validateNotArchived(document);
 
         if (document.getStatus() != DocumentStatus.DRAFT) {
             throw new RuntimeException("Only DRAFT documents can be submitted.");
@@ -365,6 +401,12 @@ document.setExtractedText(extractedText);
                 DocumentStatus.SUBMITTED,
                 updatedDocument.getUploadedBy(),
                 "Document submitted for review");
+        notificationService.createNotification(
+        updatedDocument.getUploadedBy(),
+        "Document Submitted",
+        "Your document \"" + updatedDocument.getTitle()
+                + "\" has been submitted for review.",
+        "SUBMISSION");
 
         emailService.sendSubmissionEmail(
                 updatedDocument.getUploadedBy(),
@@ -382,6 +424,7 @@ document.setExtractedText(extractedText);
         Document document = documentRepository.findById(id)
                 .orElseThrow(() ->
                         new RuntimeException("Document not found"));
+        validateNotArchived(document);
 
         if (document.getStatus() != DocumentStatus.SUBMITTED) {
             throw new RuntimeException("Only submitted documents can be reviewed.");
@@ -402,6 +445,12 @@ document.setExtractedText(extractedText);
                 DocumentStatus.UNDER_REVIEW,
                 reviewer,
                 "Document review started");
+        notificationService.createNotification(
+        updatedDocument.getUploadedBy(),
+        "Document Under Review",
+        "Your document \"" + updatedDocument.getTitle()
+                + "\" is currently under review.",
+        "REVIEW");
 
         emailService.sendReviewEmail(
                 updatedDocument.getUploadedBy(),
@@ -421,6 +470,7 @@ document.setExtractedText(extractedText);
         Document document = documentRepository.findById(id)
                 .orElseThrow(() ->
                         new RuntimeException("Document not found"));
+        validateNotArchived(document);
 
         if (document.getStatus() != DocumentStatus.UNDER_REVIEW) {
             throw new RuntimeException("Document is not under review.");
@@ -442,7 +492,12 @@ document.setExtractedText(extractedText);
 } catch (Exception e) {
     throw new RuntimeException("Failed to generate digital signature", e);
 }
-
+        notificationService.createNotification(
+        updatedDocument.getUploadedBy(),
+        "Document Approved",
+        "Your document \"" + updatedDocument.getTitle()
+                + "\" has been approved.",
+        "APPROVAL");
         approvalHistoryService.saveHistory(
                 updatedDocument,
                 DocumentStatus.APPROVED,
@@ -460,73 +515,96 @@ document.setExtractedText(extractedText);
     // Reject Document
     // ==========================================
 
-    public DocumentResponseDTO rejectDocument(
-            Long id,
-            String remarks) {
+   public DocumentResponseDTO rejectDocument(
+        Long id,
+        String remarks) {
 
-        Document document = documentRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Document not found"));
+    Document document = documentRepository.findById(id)
+            .orElseThrow(() ->
+                    new RuntimeException("Document not found"));
 
-        if (document.getStatus() != DocumentStatus.UNDER_REVIEW) {
-            throw new RuntimeException("Document is not under review.");
-        }
+    validateNotArchived(document);
 
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-
-        String reviewer = authentication.getName();
-
-        document.setStatus(DocumentStatus.REJECTED);
-        document.setRemarks(remarks);
-
-        Document updatedDocument = documentRepository.save(document);
-
-        approvalHistoryService.saveHistory(
-                updatedDocument,
-                DocumentStatus.REJECTED,
-                reviewer,
-                remarks);
-
-        emailService.sendRejectionEmail(
-                updatedDocument.getUploadedBy(),
-                updatedDocument.getTitle(),
-                remarks);
-
-        return convertToResponse(updatedDocument);
+    if (document.getStatus() != DocumentStatus.UNDER_REVIEW) {
+        throw new RuntimeException("Document is not under review.");
     }
 
+    Authentication authentication =
+            SecurityContextHolder.getContext().getAuthentication();
+
+    String reviewer = authentication.getName();
+
+    document.setStatus(DocumentStatus.REJECTED);
+    document.setRemarks(remarks);
+
+    Document updatedDocument = documentRepository.save(document);
+
+    // Save audit history first
+    approvalHistoryService.saveHistory(
+            updatedDocument,
+            DocumentStatus.REJECTED,
+            reviewer,
+            remarks);
+
+    // Create in-app notification
+    notificationService.createNotification(
+            updatedDocument.getUploadedBy(),
+            "Document Rejected",
+            "Your document \"" + updatedDocument.getTitle()
+                    + "\" has been rejected.",
+            "REJECTION");
+
+    // Send email
+    emailService.sendRejectionEmail(
+            updatedDocument.getUploadedBy(),
+            updatedDocument.getTitle(),
+            remarks);
+
+    return convertToResponse(updatedDocument);
+}
     // ==========================================
     // Archive Document
     // ==========================================
 
     public DocumentResponseDTO archiveDocument(Long id) {
 
-        Document document = documentRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Document not found"));
+    Document document = documentRepository.findById(id)
+            .orElseThrow(() ->
+                    new RuntimeException("Document not found"));
 
-        if (document.getStatus() != DocumentStatus.APPROVED) {
-            throw new RuntimeException("Only approved documents can be archived.");
-        }
+    validateNotArchived(document);
 
-        document.setStatus(DocumentStatus.ARCHIVED);
-        document.setArchived(true);
-
-        Document updatedDocument = documentRepository.save(document);
-
-        approvalHistoryService.saveHistory(
-                updatedDocument,
-                DocumentStatus.ARCHIVED,
-                updatedDocument.getUploadedBy(),
-                "Document archived");
-
-        emailService.sendArchiveEmail(
-                updatedDocument.getUploadedBy(),
-                updatedDocument.getTitle());
-
-        return convertToResponse(updatedDocument);
+    if (document.getStatus() != DocumentStatus.APPROVED) {
+        throw new RuntimeException("Only approved documents can be archived.");
     }
+
+    document.setStatus(DocumentStatus.ARCHIVED);
+    document.setArchived(true);
+
+    Document updatedDocument = documentRepository.save(document);
+
+    // Save audit history
+    approvalHistoryService.saveHistory(
+            updatedDocument,
+            DocumentStatus.ARCHIVED,
+            updatedDocument.getUploadedBy(),
+            "Document archived");
+
+    // Create in-app notification
+    notificationService.createNotification(
+            updatedDocument.getUploadedBy(),
+            "Document Archived",
+            "Your document \"" + updatedDocument.getTitle()
+                    + "\" has been archived.",
+            "ARCHIVE");
+
+    // Send email
+    emailService.sendArchiveEmail(
+            updatedDocument.getUploadedBy(),
+            updatedDocument.getTitle());
+
+    return convertToResponse(updatedDocument);
+}
         // ==========================================
     // Get Recycle Bin
     // ==========================================
@@ -546,30 +624,40 @@ document.setExtractedText(extractedText);
 
     public DocumentResponseDTO restoreDocument(Long id) {
 
-        Document document = documentRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Document not found"));
+    Document document = documentRepository.findById(id)
+            .orElseThrow(() ->
+                    new RuntimeException("Document not found"));
 
-        if (!document.isArchived()) {
-            throw new RuntimeException("Document is not in recycle bin.");
-        }
-
-        document.setArchived(false);
-
-        // Restore as Draft
-        document.setStatus(DocumentStatus.DRAFT);
-
-        Document updatedDocument =
-                documentRepository.save(document);
-
-        approvalHistoryService.saveHistory(
-                updatedDocument,
-                DocumentStatus.DRAFT,
-                updatedDocument.getUploadedBy(),
-                "Document restored from recycle bin");
-
-        return convertToResponse(updatedDocument);
+    if (!document.isArchived()) {
+        throw new RuntimeException("Document is not in recycle bin.");
     }
+
+    document.setArchived(false);
+
+    // Restore as Draft
+    document.setStatus(DocumentStatus.DRAFT);
+
+    Document updatedDocument =
+            documentRepository.save(document);
+
+    approvalHistoryService.saveHistory(
+            updatedDocument,
+            DocumentStatus.DRAFT,
+            updatedDocument.getUploadedBy(),
+            "Document restored from recycle bin");
+
+    // ==========================================
+    // Create Notification
+    // ==========================================
+    notificationService.createNotification(
+            updatedDocument.getUploadedBy(),
+            "Document Restored",
+            "Your document \"" + updatedDocument.getTitle()
+                    + "\" has been restored from the recycle bin.",
+            "RESTORE");
+
+    return convertToResponse(updatedDocument);
+}
 
     // ==========================================
     // Permanent Delete
@@ -623,12 +711,22 @@ document.setExtractedText(extractedText);
 
         dto.setApprovedBy(document.getApprovedBy());
         dto.setApprovedDate(document.getApprovedDate());
-
+        dto.setRetentionDate(document.getRetentionDate());
         dto.setRemarks(document.getRemarks());
 
         dto.setArchived(document.isArchived());
 
         return dto;
     }
+    // ==========================================
+// Validate Archived Document
+// ==========================================
+private void validateNotArchived(Document document) {
+
+    if (document.isArchived()) {
+        throw new RuntimeException(
+                "Archived documents are read-only and cannot be modified.");
+    }
+}
 
 }

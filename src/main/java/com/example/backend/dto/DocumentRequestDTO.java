@@ -12,6 +12,7 @@ public class DocumentRequestDTO {
 
     @NotBlank(message = "Category cannot be empty")
     private String category;
+   private String retentionDate;
 
     // Default Constructor
     public DocumentRequestDTO() {
@@ -54,4 +55,11 @@ public class DocumentRequestDTO {
     public void setCategory(String category) {
         this.category = category;
     }
+   public String getRetentionDate() {
+    return retentionDate;
+}
+
+public void setRetentionDate(String retentionDate) {
+    this.retentionDate = retentionDate;
+}
 }

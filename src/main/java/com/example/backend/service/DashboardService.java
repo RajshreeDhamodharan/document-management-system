@@ -202,4 +202,30 @@ public class DashboardService {
 
         return dto;
     }
+    // ==========================================
+// Documents By Category
+// ==========================================
+
+public List<StatisticsResponseDTO> getDocumentsByCategory() {
+
+    return documentRepository.countDocumentsByCategory()
+            .stream()
+            .map(row -> new StatisticsResponseDTO(
+                    row[0].toString(),
+                    ((Long) row[1]).longValue()))
+            .toList();
+}
+// ==========================================
+// Monthly Upload Statistics
+// ==========================================
+
+public List<StatisticsResponseDTO> getMonthlyUploads() {
+
+    return documentRepository.countMonthlyUploads()
+            .stream()
+            .map(row -> new StatisticsResponseDTO(
+                    row[0].toString(),
+                    ((Long) row[1]).longValue()))
+            .toList();
+}
 }

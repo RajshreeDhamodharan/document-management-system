@@ -8,10 +8,29 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.validation.FieldError;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+public ResponseEntity<Map<String, Object>> handleValidationException(
+        MethodArgumentNotValidException ex) {
 
+    Map<String, Object> response = new LinkedHashMap<>();
+
+    response.put("timestamp", LocalDateTime.now());
+    response.put("status", HttpStatus.BAD_REQUEST.value());
+    response.put("error", "Validation Error");
+
+    FieldError fieldError = ex.getBindingResult().getFieldError();
+
+    response.put("message", fieldError != null
+            ? fieldError.getDefaultMessage()
+            : "Validation failed");
+
+    return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+}
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntimeException(RuntimeException ex) {
 

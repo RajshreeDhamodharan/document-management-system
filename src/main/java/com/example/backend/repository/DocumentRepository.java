@@ -8,6 +8,8 @@ import org.springframework.stereotype.Repository;
 
 import com.example.backend.entity.Document;
 import com.example.backend.entity.DocumentStatus;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 @Repository
 public interface DocumentRepository extends JpaRepository<Document, Long>,
@@ -29,18 +31,46 @@ List<Document> findByArchivedTrue();
 
 List<Document> findByArchivedFalse();
 
-    // ==========================================
-    // Dashboard Methods
-    // ==========================================
-    // ==========================================
-// Recycle Bin
+            List<Document> findByArchivedFalseAndRetentionDateIsNotNull();
+long countByStatus(DocumentStatus status);
+
+
+
+long countByArchivedTrue();
+
+long countByArchivedFalse();
+            // ==========================================
+// Full Text Search (OCR Content)
 // ==========================================
+            
+@Query("""
+    SELECT d
+    FROM Document d
+    WHERE d.archived = false
+      AND LOWER(d.extractedText) LIKE LOWER(CONCAT('%', :keyword, '%'))
+""")
+List<Document> searchByExtractedText(@Param("keyword") String keyword);
+ List<Document> findTop5ByOrderByIdDesc();
+
+@Query("""
+SELECT d.category, COUNT(d)
+FROM Document d
+GROUP BY d.category
+""")
+List<Object[]> countDocumentsByCategory();
+
+@Query("""
+SELECT SUBSTRING(d.uploadDate,1,7), COUNT(d)
+FROM Document d
+GROUP BY SUBSTRING(d.uploadDate,1,7)
+ORDER BY SUBSTRING(d.uploadDate,1,7)
+""")
+List<Object[]> countMonthlyUploads();
 
 
-    long countByStatus(DocumentStatus status);
 
-    long countByArchived(boolean archived);
 
-    List<Document> findTop5ByOrderByIdDesc();
+    
+
 
 }

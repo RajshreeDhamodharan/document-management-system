@@ -53,5 +53,26 @@ public class DashboardController {
         return ResponseEntity.ok(
                 dashboardService.getUsersByRole());
     }
+    // ==========================================
+// Documents By Category
+// ==========================================
+
+@GetMapping("/categories")
+public ResponseEntity<List<StatisticsResponseDTO>> getCategoryStatistics() {
+
+    return ResponseEntity.ok(
+            dashboardService.getDocumentsByCategory());
+}
+
+// ==========================================
+// Monthly Upload Statistics
+// ==========================================
+
+@GetMapping("/monthly")
+public ResponseEntity<List<StatisticsResponseDTO>> getMonthlyUploads() {
+
+    return ResponseEntity.ok(
+            dashboardService.getMonthlyUploads());
+}
 
 }

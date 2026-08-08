@@ -115,26 +115,30 @@ public ResponseEntity<Page<DocumentResponseDTO>> searchDocuments(
     // ==========================================
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','OWNER','EDITOR')")
-    public DocumentResponseDTO uploadDocument(
+    
+public DocumentResponseDTO uploadDocument(
 
-            @RequestParam("file") MultipartFile file,
+        @RequestParam("file") MultipartFile file,
 
-            @RequestParam("title") String title,
+        @RequestParam("title") String title,
 
-            @RequestParam("description") String description,
+        @RequestParam("description") String description,
 
-            @RequestParam("category") String category)
+        @RequestParam("category") String category,
 
-            throws IOException {
+        @RequestParam("retentionDate") String retentionDate)
 
-        DocumentRequestDTO dto = new DocumentRequestDTO();
+        throws IOException {
 
-        dto.setTitle(title);
-        dto.setDescription(description);
-        dto.setCategory(category);
+    DocumentRequestDTO dto = new DocumentRequestDTO();
 
-        return documentService.uploadDocument(file, dto);
-    }
+    dto.setTitle(title);
+    dto.setDescription(description);
+    dto.setCategory(category);
+    dto.setRetentionDate(retentionDate);
+
+    return documentService.uploadDocument(file, dto);
+}
 
     // ==========================================
     // Download Document
@@ -162,7 +166,17 @@ public ResponseEntity<Page<DocumentResponseDTO>> searchDocuments(
 
         return documentService.getAllDocuments();
     }
+    // ==========================================
+// Full Text Search
+// ==========================================
 
+@GetMapping("/search")
+public ResponseEntity<List<DocumentResponseDTO>> searchDocuments(
+        @RequestParam String keyword) {
+
+    return ResponseEntity.ok(
+            documentService.searchDocuments(keyword));
+}
     // ==========================================
     // Get Document By ID
     // ==========================================
