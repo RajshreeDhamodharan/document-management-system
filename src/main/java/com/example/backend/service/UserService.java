@@ -200,7 +200,10 @@ public Page<UserResponseDTO> getUsers(int page, int size) {
 
     userRepository.save(user);
 
-    String token = jwtUtil.generateToken(user.getEmail());
+    String token = jwtUtil.generateToken(
+        user.getEmail(),
+        user.getRole()
+);
 
     return new LoginResponse(
             "Login Successful",

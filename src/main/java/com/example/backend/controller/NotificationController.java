@@ -72,14 +72,19 @@ public class NotificationController {
     // Mark One Notification Read
     // ==========================================
 
-    @PutMapping("/read/{id}")
-    public ResponseEntity<String> markAsRead(
-            @PathVariable Long id) {
+   @PutMapping("/read/{id}")
+public ResponseEntity<String> markAsRead(
+        @PathVariable Long id) {
 
-        notificationService.markAsRead(id);
+    Authentication authentication =
+            SecurityContextHolder.getContext().getAuthentication();
 
-        return ResponseEntity.ok("Notification marked as read.");
-    }
+    notificationService.markAsRead(
+            id,
+            authentication.getName());
+
+    return ResponseEntity.ok("Notification marked as read.");
+}
 
     // ==========================================
     // Mark All Read

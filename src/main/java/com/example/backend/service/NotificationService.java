@@ -82,17 +82,21 @@ public class NotificationService {
     // Mark Notification as Read
     // ==========================================
 
-    public void markAsRead(Long id) {
+    public void markAsRead(Long id, String recipient) {
 
-        Notification notification =
-                notificationRepository.findById(id)
-                        .orElseThrow(() ->
-                                new RuntimeException("Notification not found"));
+    Notification notification =
+            notificationRepository.findById(id)
+                    .orElseThrow(() ->
+                            new RuntimeException("Notification not found"));
 
-        notification.setRead(true);
-
-        notificationRepository.save(notification);
+    if (!notification.getRecipient().equals(recipient)) {
+        throw new RuntimeException("You are not authorized to access this notification.");
     }
+
+    notification.setRead(true);
+
+    notificationRepository.save(notification);
+}
 
     // ==========================================
     // Mark All as Read

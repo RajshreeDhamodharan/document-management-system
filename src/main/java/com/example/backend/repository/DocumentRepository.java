@@ -68,9 +68,4 @@ ORDER BY SUBSTRING(d.uploadDate,1,7)
 List<Object[]> countMonthlyUploads();
 
 
-
-
-    
-
-
 }

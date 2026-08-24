@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.backend.dto.DashboardResponseDTO;
 import com.example.backend.dto.StatisticsResponseDTO;
 import com.example.backend.service.DashboardService;
-
+import org.springframework.web.bind.annotation.CrossOrigin;
 @RestController
 @RequestMapping("/api/dashboard")
 public class DashboardController {

@@ -38,7 +38,7 @@ public class RetentionScheduler {
     // Runs every day at 09:00 AM
     // ==========================================
 
-   @Scheduled(cron = "0 0 9 * * *")
+@Scheduled(cron = "0 0 9 * * *")
     public void checkRetentionPolicy() {
          System.out.println("====================================");
     System.out.println("Retention Scheduler Executed");

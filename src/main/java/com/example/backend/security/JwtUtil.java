@@ -5,7 +5,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 
 import org.springframework.stereotype.Component;
-
+import com.example.backend.entity.Role;
 import java.util.Date;
 
 @Component
@@ -15,20 +15,24 @@ public class JwtUtil {
             "DocumentManagementSystemSecretKey2026";
 
     // Generate JWT Token
-    public String generateToken(String email) {
+   // Generate JWT Token with Email + Role
+public String generateToken(String email, Role role) {
 
-        return Jwts.builder()
-                .subject(email)
-                .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + 86400000))
-                .signWith(
-                        io.jsonwebtoken.security.Keys.hmacShaKeyFor(
-                                SECRET_KEY.getBytes()
-                        ),
-                        SignatureAlgorithm.HS256
-                )
-                .compact();
-    }
+    return Jwts.builder()
+            .subject(email)
+            .claim("role", role.name())
+            .issuedAt(new Date())
+            .expiration(
+                    new Date(System.currentTimeMillis() + 86400000)
+            )
+            .signWith(
+                    io.jsonwebtoken.security.Keys.hmacShaKeyFor(
+                            SECRET_KEY.getBytes()
+                    ),
+                    SignatureAlgorithm.HS256
+            )
+            .compact();
+}
 
     // Extract Email
     public String extractEmail(String token) {

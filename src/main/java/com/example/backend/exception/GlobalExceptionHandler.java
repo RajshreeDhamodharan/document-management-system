@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -13,26 +14,68 @@ import org.springframework.validation.FieldError;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    // ==========================================
+    // ACCESS DENIED
+    // ==========================================
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleAccessDeniedException(
+            AccessDeniedException ex) {
+
+        Map<String, Object> response = new LinkedHashMap<>();
+
+        response.put("timestamp", LocalDateTime.now());
+        response.put("status", HttpStatus.FORBIDDEN.value());
+        response.put("error", "Forbidden");
+        response.put(
+                "message",
+                "Access Denied! You don't have permission to access this resource."
+        );
+
+        return new ResponseEntity<>(
+                response,
+                HttpStatus.FORBIDDEN
+        );
+    }
+
+    // ==========================================
+    // VALIDATION ERROR
+    // ==========================================
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
-public ResponseEntity<Map<String, Object>> handleValidationException(
-        MethodArgumentNotValidException ex) {
+    public ResponseEntity<Map<String, Object>> handleValidationException(
+            MethodArgumentNotValidException ex) {
 
-    Map<String, Object> response = new LinkedHashMap<>();
+        Map<String, Object> response = new LinkedHashMap<>();
 
-    response.put("timestamp", LocalDateTime.now());
-    response.put("status", HttpStatus.BAD_REQUEST.value());
-    response.put("error", "Validation Error");
+        response.put("timestamp", LocalDateTime.now());
+        response.put("status", HttpStatus.BAD_REQUEST.value());
+        response.put("error", "Validation Error");
 
-    FieldError fieldError = ex.getBindingResult().getFieldError();
+        FieldError fieldError =
+                ex.getBindingResult().getFieldError();
 
-    response.put("message", fieldError != null
-            ? fieldError.getDefaultMessage()
-            : "Validation failed");
+        response.put(
+                "message",
+                fieldError != null
+                        ? fieldError.getDefaultMessage()
+                        : "Validation failed"
+        );
 
-    return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-}
+        return new ResponseEntity<>(
+                response,
+                HttpStatus.BAD_REQUEST
+        );
+    }
+
+    // ==========================================
+    // RUNTIME EXCEPTION
+    // ==========================================
+
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<Map<String, Object>> handleRuntimeException(RuntimeException ex) {
+    public ResponseEntity<Map<String, Object>> handleRuntimeException(
+            RuntimeException ex) {
 
         Map<String, Object> response = new LinkedHashMap<>();
 
@@ -41,19 +84,32 @@ public ResponseEntity<Map<String, Object>> handleValidationException(
         response.put("error", "Bad Request");
         response.put("message", ex.getMessage());
 
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(
+                response,
+                HttpStatus.BAD_REQUEST
+        );
     }
 
+    // ==========================================
+    // GENERAL EXCEPTION
+    // ==========================================
+
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleException(Exception ex) {
+    public ResponseEntity<Map<String, Object>> handleException(
+            Exception ex) {
 
         Map<String, Object> response = new LinkedHashMap<>();
 
         response.put("timestamp", LocalDateTime.now());
-        response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+        response.put("status",
+                HttpStatus.INTERNAL_SERVER_ERROR.value());
+
         response.put("error", "Internal Server Error");
         response.put("message", ex.getMessage());
 
-        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        return new ResponseEntity<>(
+                response,
+                HttpStatus.INTERNAL_SERVER_ERROR
+        );
     }
 }
