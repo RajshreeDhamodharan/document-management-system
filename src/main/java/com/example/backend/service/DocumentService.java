@@ -8,7 +8,7 @@ import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
-
+import com.example.backend.repository.DocumentVersionRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -28,9 +28,11 @@ import com.example.backend.dto.DocumentResponseDTO;
 import com.example.backend.dto.DocumentSearchDTO;
 import com.example.backend.entity.Document;
 import com.example.backend.entity.DocumentStatus;
+import com.example.backend.repository.ApprovalHistoryRepository;
+import com.example.backend.repository.DigitalSignatureRepository;
 import com.example.backend.repository.DocumentRepository;
 import com.example.backend.specification.DocumentSpecification;
-
+import org.springframework.transaction.annotation.Transactional;
 @Service
 public class DocumentService {
 
@@ -44,6 +46,9 @@ public class DocumentService {
     private final DocumentVersionService documentVersionService;
     private final DigitalSignatureService digitalSignatureService;
     private final OCRService ocrService;
+    private final DocumentVersionRepository documentVersionRepository;
+    private final ApprovalHistoryRepository approvalHistoryRepository;
+private final DigitalSignatureRepository digitalSignatureRepository;
  public DocumentService(
         DocumentRepository documentRepository,
         ApprovalHistoryService approvalHistoryService,
@@ -51,7 +56,10 @@ public class DocumentService {
         NotificationService notificationService,
         DocumentVersionService documentVersionService,
         DigitalSignatureService digitalSignatureService,
-        OCRService ocrService) {
+        OCRService ocrService,
+        ApprovalHistoryRepository approvalHistoryRepository,
+        DocumentVersionRepository documentVersionRepository,
+        DigitalSignatureRepository digitalSignatureRepository) {
 
     this.documentRepository = documentRepository;
     this.approvalHistoryService = approvalHistoryService;
@@ -60,6 +68,10 @@ public class DocumentService {
     this.documentVersionService = documentVersionService;
     this.digitalSignatureService = digitalSignatureService;
     this.ocrService = ocrService;
+
+    this.approvalHistoryRepository = approvalHistoryRepository;
+    this.documentVersionRepository = documentVersionRepository;
+    this.digitalSignatureRepository = digitalSignatureRepository;
 }
 
     // ==========================================
@@ -663,28 +675,60 @@ public DocumentResponseDTO updateDocument(
     // Permanent Delete
     // ==========================================
 
-    public void permanentDelete(Long id) {
+ // ==========================================
+// Permanent Delete
+// ==========================================
 
-        Document document = documentRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Document not found"));
+// ==========================================
+// Permanent Delete
+// ==========================================
 
-        // Delete physical file if exists
-        try {
+@Transactional
+public void permanentDelete(Long id) {
+
+    Document document = documentRepository.findById(id)
+            .orElseThrow(() ->
+                    new RuntimeException("Document not found"));
+
+    // ==========================================
+    // Delete physical file
+    // ==========================================
+
+    try {
+
+        if (document.getFilePath() != null) {
 
             Path filePath = Paths.get(document.getFilePath());
 
             Files.deleteIfExists(filePath);
-
-        } catch (IOException e) {
-
-            System.out.println("Unable to delete file : "
-                    + e.getMessage());
-
         }
 
-        documentRepository.delete(document);
+    } catch (IOException e) {
+
+        System.out.println(
+                "Unable to delete physical file: "
+                        + e.getMessage());
     }
+
+    // ==========================================
+    // Delete child records first
+    // ==========================================
+
+    // 1. Delete digital signature
+    digitalSignatureRepository.deleteByDocument(document);
+
+    // 2. Delete document versions
+    documentVersionRepository.deleteByDocument(document);
+
+    // 3. Delete approval history
+    approvalHistoryRepository.deleteByDocument(document);
+
+    // ==========================================
+    // Delete parent document
+    // ==========================================
+
+    documentRepository.delete(document);
+}
         // ==========================================
     // Convert Entity -> DTO
     // ==========================================

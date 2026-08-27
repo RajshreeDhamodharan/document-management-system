@@ -52,6 +52,9 @@ public class ApprovalHistoryService {
                 .map(this::convertToDTO)
                 .toList();
     }
+    public void deleteHistoryByDocumentId(Long documentId) {
+    approvalHistoryRepository.deleteByDocumentId(documentId);
+}
 
     // ==========================================
     // Get History By Document

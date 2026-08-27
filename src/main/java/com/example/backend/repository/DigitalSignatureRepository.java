@@ -15,4 +15,7 @@ public interface DigitalSignatureRepository
     Optional<DigitalSignature> findByDocument(Document document);
 
     boolean existsByDocument(Document document);
+
+    // Delete digital signature for a document
+    void deleteByDocument(Document document);
 }

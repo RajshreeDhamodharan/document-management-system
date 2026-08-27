@@ -17,4 +17,6 @@ public interface DocumentVersionRepository
 
     Optional<DocumentVersion> findTopByDocumentOrderByVersionDesc(Document document);
 
+    // Delete all versions for a document
+    void deleteByDocument(Document document);
 }

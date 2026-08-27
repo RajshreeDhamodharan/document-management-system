@@ -16,7 +16,6 @@ public class UserRequestDTO {
     @NotBlank(message = "Email cannot be empty")
     private String email;
 
-    @NotBlank(message = "Password cannot be empty")
     @Size(min = 6, message = "Password must contain at least 6 characters")
     private String password;
 
